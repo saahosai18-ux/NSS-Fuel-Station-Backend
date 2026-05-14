@@ -57,3 +57,7 @@ cover/
 *.swo
 *~
 .DS_Store
+
+# Google Sheets API credentials
+credentials.json
+credentials.json.json

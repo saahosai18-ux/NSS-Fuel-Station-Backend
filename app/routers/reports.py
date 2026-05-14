@@ -492,3 +492,18 @@ async def get_daily_summary(
     )
 
     return summary
+
+@router.get("/sheets/dashboard")
+async def get_sheets_dashboard_data(
+    user: dict = Depends(require_role("manager", "owner"))
+):
+    """
+    Fetch the DASHBOARD tab data from Google Sheets directly.
+    Only accessible by manager/owner.
+    """
+    from app.services.sheets_service import get_dashboard_data
+    try:
+        data = get_dashboard_data()
+        return {"status": "success", "data": data.get("values", [])}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

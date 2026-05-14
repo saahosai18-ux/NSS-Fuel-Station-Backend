@@ -8,7 +8,7 @@ from app.services.supabase_service import (
     get_supabase_admin, get_current_user, require_role, log_audit,
 )
 from app.services.sheets_service import (
-    sync_all_on_approval, ensure_sheet_headers,
+    sync_all_on_approval
 )
 
 router = APIRouter(prefix="/sync", tags=["Sync"])
@@ -40,10 +40,7 @@ async def sync_report_to_sheets(
         )
 
     # Get pump name
-    pump_result = supabase.table("pumps").select("display_name").eq(
-        "id", report["pump_id"]
-    ).single().execute()
-    pump_name = pump_result.data.get("display_name", "") if pump_result.data else ""
+    pump_name = f"Pump {report['pump_id']}"
 
     # Get credit entries
     credits_result = supabase.table("credit_entries").select("*").eq(
@@ -70,8 +67,8 @@ async def setup_sheet_headers(
     Call once after creating the spreadsheet.
     """
     try:
-        ensure_sheet_headers()
-        return {"status": "ok", "message": "Headers set up in all 3 sheets"}
+        # ensure_sheet_headers() is removed because we use predefined Excel template
+        return {"status": "ok", "message": "Headers are pre-configured in the Excel template"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
