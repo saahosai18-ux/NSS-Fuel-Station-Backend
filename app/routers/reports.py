@@ -384,8 +384,10 @@ async def approve_or_reject_report(
             if sync_result.get("synced"):
                 supabase.table("reports").update({"synced_to_sheets": True}).eq("id", report_id).execute()
                 updated["synced_to_sheets"] = True
+            else:
+                print(f"Sheets sync failed with errors: {sync_result.get('errors')}")
         except Exception as e:
-            print(f"Sheets sync error: {e}")
+            print(f"Sheets sync exception: {e}")
             # Don't fail the approval if sync fails
 
         # Update inventory — deduct sold quantity
