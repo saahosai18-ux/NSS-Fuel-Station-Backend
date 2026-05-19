@@ -11,7 +11,7 @@ class OCRService:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
             genai.configure(api_key=self.gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Keys for fallbacks
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
@@ -60,22 +60,28 @@ class OCRService:
 
         # --- Provider 1: Gemini ---
         if self.gemini_api_key:
-            try:
-                print("OCR: Attempting Gemini...")
-                image_parts = [{"mime_type": "image/jpeg", "data": image_bytes}]
-                response = self.model.generate_content([prompt, image_parts[0]])
-                
-                text = response.text
-                if "```json" in text:
-                    text = text.split("```json")[1].split("```")[0].strip()
-                elif "```" in text:
-                    text = text.split("```")[1].split("```")[0].strip()
-                
-                extracted_data = json.loads(text)
-                used_provider = "Gemini"
-            except Exception as e:
-                print(f"Gemini Error: {e}")
-                errors.append(f"Gemini: {str(e)}")
+            gemini_models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-pro-latest']
+            
+            for model_name in gemini_models:
+                try:
+                    print(f"OCR: Attempting Gemini model {model_name}...")
+                    model = genai.GenerativeModel(model_name)
+                    image_parts = [{"mime_type": "image/jpeg", "data": image_bytes}]
+                    response = model.generate_content([prompt, image_parts[0]])
+                    
+                    text = response.text
+                    if "```json" in text:
+                        text = text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in text:
+                        text = text.split("```")[1].split("```")[0].strip()
+                    
+                    extracted_data = json.loads(text)
+                    used_provider = f"Gemini ({model_name})"
+                    break  # Success! Stop trying other models
+                except Exception as e:
+                    print(f"Gemini {model_name} Error: {e}")
+                    errors.append(f"Gemini {model_name}: {str(e)}")
+                    continue # Try the next model
 
         # --- Provider 2: OpenRouter (Fallback) ---
         if not extracted_data and self.openrouter_api_key:
