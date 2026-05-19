@@ -437,6 +437,28 @@ async def approve_or_reject_report(
 
         return result.data[0] if result.data else report
 
+@router.delete("/{report_id}")
+async def delete_report(
+    report_id: str,
+    user: dict = Depends(require_role("manager", "owner")),
+):
+    """Delete a report permanently (usually during testing)."""
+    supabase = get_supabase_admin()
+    
+    # Check if report exists
+    existing = supabase.table("reports").select("*").eq("id", report_id).single().execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    # Delete associated credit entries first
+    supabase.table("credit_entries").delete().eq("report_id", report_id).execute()
+    
+    # Delete report
+    supabase.table("reports").delete().eq("id", report_id).execute()
+    
+    return {"success": True, "message": "Report deleted successfully"}
+
+
 
 @router.get("/summary/{report_date}")
 async def get_daily_summary(
