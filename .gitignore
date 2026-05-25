@@ -61,3 +61,6 @@ cover/
 # Google Sheets API credentials
 credentials.json
 credentials.json.json
+
+# Scratch files
+scratch_*.py

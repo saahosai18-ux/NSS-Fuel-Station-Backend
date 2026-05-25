@@ -168,14 +168,27 @@ def sync_credit_ledger(report: dict, entries: List[dict]) -> dict:
 def sync_expenses(report: dict) -> dict:
     # EXPENSES: Date, Pump, Serial No, Description, Amount
     if float(report.get("expenses", 0)) > 0:
-        row = [
-            report.get("date", ""),
-            report.get("pump_name", ""),
-            str(report.get("id", ""))[:6],
-            "Shift Expense", # Generic description since we don't have detailed breakdown in report yet
-            report.get("expenses", 0)
-        ]
-        return append_to_sheet("EXPENSES", [row])
+        expense_entries = report.get("expense_entries", [])
+        if expense_entries:
+            rows = []
+            for entry in expense_entries:
+                rows.append([
+                    report.get("date", ""),
+                    report.get("pump_name", ""),
+                    str(report.get("id", ""))[:6],
+                    entry.get("description", "Shift Expense"),
+                    entry.get("amount", 0)
+                ])
+            return append_to_sheet("EXPENSES", rows)
+        else:
+            row = [
+                report.get("date", ""),
+                report.get("pump_name", ""),
+                str(report.get("id", ""))[:6],
+                "Shift Expense",
+                report.get("expenses", 0)
+            ]
+            return append_to_sheet("EXPENSES", [row])
     return {"status": "no_expenses"}
 
 async def sync_all_on_approval(report: dict, credit_entries: List[dict]) -> dict:

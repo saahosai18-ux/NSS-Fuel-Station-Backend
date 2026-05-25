@@ -24,6 +24,11 @@ class ShiftCreditEntry(BaseModel):
     amount: float = Field(ge=0)
 
 
+class ShiftExpenseEntry(BaseModel):
+    description: str
+    amount: float = Field(ge=0)
+
+
 class VarianceStatus(str, Enum):
     PERFECT = "PERFECT"
     SHORTAGE = "SHORTAGE"
@@ -66,6 +71,7 @@ class ReportCreate(BaseModel):
     manager_name: Optional[str] = None
     # Credits array
     credit_entries: List[ShiftCreditEntry] = []
+    expense_entries: List[ShiftExpenseEntry] = []
     # Times
     shift_start: Optional[str] = "08:00"
     shift_end: Optional[str] = "17:00"
@@ -96,6 +102,8 @@ class ReportApproval(BaseModel):
     """Schema for approving/rejecting a report."""
     action: str = Field(pattern="^(approve|reject)$")
     rejection_reason: Optional[str] = None
+    hsd_price: Optional[float] = None
+    ms_price: Optional[float] = None
 
 
 class ReportResponse(BaseModel):
@@ -169,5 +177,6 @@ class ReportResponse(BaseModel):
     last_edited_at: Optional[str] = None
     created_at: Optional[str] = None
     credit_entries: List[ShiftCreditEntry] = []
+    expense_entries: List[ShiftExpenseEntry] = []
 
     model_config = {"from_attributes": True}

@@ -170,7 +170,9 @@ async def create_report(
         "credit_total": body.credit_given,
         "gross_collected": calc["gross_collected"],
         # Deductions
-        "expenses": body.expenses, "testing_amt": body.testing_amt,
+        "expenses": body.expenses,
+        "expense_entries": [e.dict() for e in body.expense_entries],
+        "testing_amt": body.testing_amt,
         "bp_rewards": body.bp_rewards,
         "net_collected": calc["net_collected"],
         # Variance
@@ -359,11 +361,56 @@ async def approve_or_reject_report(
         )
 
     if body.action == "approve":
+        # Get latest/merged price values
+        hsd_p = body.hsd_price if body.hsd_price is not None else float(report.get("hsd_price", 91.29))
+        ms_p = body.ms_price if body.ms_price is not None else float(report.get("ms_price", 103.24))
+
+        # Recalculate shift calculations
+        calc = calculate_shift(
+            open_n1=float(report["open_n1"]), open_n2=float(report["open_n2"]),
+            open_n3=float(report["open_n3"]), open_n4=float(report["open_n4"]),
+            close_n1=float(report["close_n1"]), close_n2=float(report["close_n2"]),
+            close_n3=float(report["close_n3"]), close_n4=float(report["close_n4"]),
+            hsd_price=hsd_p, ms_price=ms_p,
+            cash=float(report.get("cash", 0)), upi=float(report.get("upi", 0)),
+            pine=float(report.get("pine", 0)), otp=float(report.get("otp", 0)),
+            credit_given=float(report.get("credit_total", 0)),
+            expenses=float(report.get("expenses", 0)),
+            testing_amt=float(report.get("testing_amt", 0)),
+            bp_rewards=float(report.get("bp_rewards", 0)),
+            test_hsd=float(report.get("test_hsd", 0)),
+            test_ms=float(report.get("test_ms", 0)),
+            open_hsd=float(report.get("open_hsd", 0)),
+            load_hsd=float(report.get("load_hsd", 0)),
+            open_ms=float(report.get("open_ms", 0)),
+            load_ms=float(report.get("load_ms", 0)),
+        )
+
         update_data = {
             "status": "approved",
             "approved_by": user["id"],
             "approved_at": datetime.utcnow().isoformat(),
+            "hsd_price": hsd_p,
+            "ms_price": ms_p,
+            "hsd_sales": calc["hsd_sales"],
+            "ms_sales": calc["ms_sales"],
+            "total_sales": calc["total_sales"],
+            "expected_sales": calc["expected_sales"],
+            "gross_collected": calc["gross_collected"],
+            "net_collected": calc["net_collected"],
+            "variance": calc["variance"],
+            "variance_status": calc["variance_status"],
+            "cash_in_hand": calc["cash_in_hand"],
+            "close_hsd": calc["close_hsd"],
+            "close_ms": calc["close_ms"],
         }
+
+        # If prices were overridden, we might also want to mark it edited
+        if body.hsd_price is not None or body.ms_price is not None:
+            update_data["is_edited"] = True
+            update_data["edit_count"] = (report.get("edit_count") or 0) + 1
+            update_data["last_edited_by"] = user["role"]
+            update_data["last_edited_at"] = datetime.utcnow().isoformat()
 
         result = supabase.table("reports").update(update_data).eq("id", report_id).execute()
         updated = result.data[0] if result.data else report
@@ -440,15 +487,21 @@ async def approve_or_reject_report(
 @router.delete("/{report_id}")
 async def delete_report(
     report_id: str,
-    user: dict = Depends(require_role("manager", "owner")),
+    user: dict = Depends(get_current_user),
 ):
-    """Delete a report permanently (usually during testing)."""
+    """Delete a report permanently."""
     supabase = get_supabase_admin()
     
     # Check if report exists
     existing = supabase.table("reports").select("*").eq("id", report_id).single().execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Report not found")
+        
+    report = existing.data
+    
+    # DSM can only delete their own reports
+    if user["role"] == "dsm" and report.get("dsm_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
         
     # Delete associated credit entries first
     supabase.table("credit_entries").delete().eq("report_id", report_id).execute()
