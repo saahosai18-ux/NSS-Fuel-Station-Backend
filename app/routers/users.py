@@ -115,32 +115,3 @@ async def update_user_status(
         raise HTTPException(status_code=400, detail="Invalid action")
 
 
-@router.get("/notifications")
-async def get_notifications(user: dict = Depends(get_current_user)):
-    """Fetch notifications for the current user."""
-    try:
-        supabase = get_supabase_admin()
-        res = supabase.table("notifications").select("*").eq("user_id", user["id"]).order("created_at", desc=True).execute()
-        return res.data or []
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch notifications: {str(e)}")
-
-
-@router.put("/notifications/{notif_id}/read")
-async def mark_notification_read(notif_id: str, user: dict = Depends(get_current_user)):
-    """Mark a notification as read."""
-    try:
-        supabase = get_supabase_admin()
-        # Verify it belongs to the user
-        res = supabase.table("notifications").select("user_id").eq("id", notif_id).single().execute()
-        if not res.data:
-            raise HTTPException(status_code=404, detail="Notification not found")
-        if res.data["user_id"] != user["id"]:
-            raise HTTPException(status_code=403, detail="Forbidden")
-            
-        supabase.table("notifications").update({"is_read": True}).eq("id", notif_id).execute()
-        return {"status": "success", "message": "Notification marked as read"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to mark notification read: {str(e)}")
