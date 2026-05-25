@@ -75,6 +75,9 @@ class ReportCreate(BaseModel):
     # Times
     shift_start: Optional[str] = "08:00"
     shift_end: Optional[str] = "17:00"
+    # Pricing overrides (passed from client)
+    hsd_price: Optional[float] = None
+    ms_price: Optional[float] = None
 
     model_config = {"populate_by_name": True}
 

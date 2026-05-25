@@ -123,12 +123,16 @@ async def create_report(
     if not validation["valid"]:
         raise HTTPException(status_code=400, detail=validation["errors"])
 
-    # Get current fuel prices
-    hsd_price_row = supabase.table("fuel_prices").select("price_per_litre").eq("fuel_type", "HSD").order("effective_from", desc=True).limit(1).execute()
-    ms_price_row = supabase.table("fuel_prices").select("price_per_litre").eq("fuel_type", "MS").order("effective_from", desc=True).limit(1).execute()
+    # Get fuel prices: use client-submitted values if present, else fallback to fuel_prices database table
+    hsd_price = body.hsd_price
+    if hsd_price is None:
+        hsd_price_row = supabase.table("fuel_prices").select("price_per_litre").eq("fuel_type", "HSD").order("created_at", desc=True).limit(1).execute()
+        hsd_price = float(hsd_price_row.data[0]["price_per_litre"]) if hsd_price_row.data else 91.29
 
-    hsd_price = float(hsd_price_row.data[0]["price_per_litre"]) if hsd_price_row.data else 91.29
-    ms_price = float(ms_price_row.data[0]["price_per_litre"]) if ms_price_row.data else 103.24
+    ms_price = body.ms_price
+    if ms_price is None:
+        ms_price_row = supabase.table("fuel_prices").select("price_per_litre").eq("fuel_type", "MS").order("created_at", desc=True).limit(1).execute()
+        ms_price = float(ms_price_row.data[0]["price_per_litre"]) if ms_price_row.data else 103.24
 
     # Calculate shift values (exact port of existing JavaScript logic)
     calc = calculate_shift(
@@ -538,8 +542,8 @@ async def get_daily_summary(
     }
 
     # Get margins for profit calc
-    hsd_margin_row = supabase.table("fuel_prices").select("margin_per_litre").eq("fuel_type", "HSD").order("effective_from", desc=True).limit(1).execute()
-    ms_margin_row = supabase.table("fuel_prices").select("margin_per_litre").eq("fuel_type", "MS").order("effective_from", desc=True).limit(1).execute()
+    hsd_margin_row = supabase.table("fuel_prices").select("margin_per_litre").eq("fuel_type", "HSD").order("created_at", desc=True).limit(1).execute()
+    ms_margin_row = supabase.table("fuel_prices").select("margin_per_litre").eq("fuel_type", "MS").order("created_at", desc=True).limit(1).execute()
     hsd_margin = float(hsd_margin_row.data[0]["margin_per_litre"]) if hsd_margin_row.data else 2.5
     ms_margin = float(ms_margin_row.data[0]["margin_per_litre"]) if ms_margin_row.data else 3.0
 
