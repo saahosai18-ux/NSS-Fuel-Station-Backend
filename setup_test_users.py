@@ -91,6 +91,42 @@ def setup():
         else:
             print(f"[ERROR] Could not create DSM: {e}")
 
+    # ── 2b. Create Owner ──
+    print("\n--- Creating Owner (owner@nss.com)...")
+    try:
+        res = supabase.auth.admin.create_user({
+            "email": "owner@nss.com",
+            "password": "password123",
+            "email_confirm": True
+        })
+        owner_id = res.user.id
+        
+        supabase.table("profiles").upsert({
+            "id": owner_id,
+            "role": "owner",
+            "name": "Station Owner",
+            "is_approved": True,
+            "is_active": True,
+        }).execute()
+        print(f"[OK] Owner created! ID: {owner_id}")
+    except Exception as e:
+        if "already been registered" in str(e) or "already exists" in str(e):
+            print("[SKIP] Owner already exists — ensuring profile is approved...")
+            users = supabase.auth.admin.list_users()
+            for u in users:
+                if u.email == "owner@nss.com":
+                    supabase.table("profiles").upsert({
+                        "id": u.id,
+                        "role": "owner",
+                        "name": "Station Owner",
+                        "is_approved": True,
+                        "is_active": True,
+                    }).execute()
+                    print(f"[OK] Owner profile updated! ID: {u.id}")
+                    break
+        else:
+            print(f"[ERROR] Could not create Owner: {e}")
+
     # ── 3. Verify Pumps exist ──
     print("\n--- Checking pumps...")
     try:
@@ -150,6 +186,7 @@ def setup():
     print("\nTest credentials:")
     print("  DSM:     raju@nss.com     / password123")
     print("  Manager: manager@nss.com  / password123")
+    print("  Owner:   owner@nss.com    / password123")
     print("\nNext steps:")
     print("  1. Run backend:  uvicorn app.main:app --reload --host 0.0.0.0")
     print("  2. Run Flutter:  flutter run")
