@@ -62,8 +62,44 @@ async def login(request: LoginRequest):
 
         # Fetch profile to get role and status
         admin = get_supabase_admin()
-        profile_result = admin.table("profiles").select("*").eq("id", user.id).single().execute()
-        profile = profile_result.data
+        profile = None
+        try:
+            profile_result = admin.table("profiles").select("*").eq("id", user.id).single().execute()
+            profile = profile_result.data
+        except Exception as e:
+            error_str = str(e)
+            if "PGRST116" in error_str or "0 rows" in error_str or "single JSON object" in error_str:
+                # Profile is missing (e.g. database wipe). Auto-create it.
+                role = "dsm"
+                email_lower = user.email.lower()
+                if "manager" in email_lower or "mgr" in email_lower:
+                    role = "manager"
+                elif "owner" in email_lower:
+                    role = "owner"
+                
+                # Check seed emails
+                if email_lower == "manager@nss.com":
+                    role = "manager"
+                elif email_lower == "owner@nss.com":
+                    role = "owner"
+                elif email_lower == "raju@nss.com":
+                    role = "dsm"
+
+                try:
+                    insert_res = admin.table("profiles").insert({
+                        "id": user.id,
+                        "email": user.email,
+                        "role": role,
+                        "name": user.email.split("@")[0],
+                        "is_approved": True,
+                        "is_active": True
+                    }).execute()
+                    if insert_res.data:
+                        profile = insert_res.data[0]
+                except Exception as insert_err:
+                    print(f"Failed to auto-create profile on login: {insert_err}")
+            else:
+                raise e
 
         # Explicitly check for deactivated users
         if profile and profile.get("is_active") is False:
