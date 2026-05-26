@@ -348,7 +348,7 @@ async def approve_or_reject_report(
     Approve or reject a report.
     On approval:
     - Status → approved, locked for edits
-    - Syncs to Google Sheets (FUEL SALES, CREDIT LEDGER, INVENTORY)
+    - Syncs to Google Sheets (DAILY SALES, NOZZLE READINGS, COLLECTION, etc.)
     - Deducts inventory
     - Sends notification to DSM
     """

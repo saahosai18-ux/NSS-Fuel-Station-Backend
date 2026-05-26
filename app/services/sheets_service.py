@@ -1,7 +1,7 @@
 """
 Google Sheets API v4 service — sync data via service account.
 Called when Manager approves a report.
-Updates 6 sheets atomically: DAILY SALES, NOZZLE READINGS, COLLECTION, INVENTORY, CREDIT LEDGER, EXPENSES.
+Updates 5 sheets atomically: DAILY SALES, NOZZLE READINGS, COLLECTION, INVENTORY, EXPENSES.
 """
 import os
 from typing import List, Optional
