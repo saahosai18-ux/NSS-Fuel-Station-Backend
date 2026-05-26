@@ -191,6 +191,8 @@ async def create_report(
         # Staff
         "dsm_name": body.dsm_name or user["name"],
         "manager_name": body.manager_name,
+        "shift_start": body.shift_start,
+        "shift_end": body.shift_end,
         # Status
         "status": "pending",
         "submitted_at": datetime.utcnow().isoformat(),

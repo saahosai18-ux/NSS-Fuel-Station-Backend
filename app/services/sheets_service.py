@@ -143,27 +143,7 @@ def sync_inventory(report: dict) -> dict:
     ]
     return append_to_sheet("INVENTORY", [row])
 
-def sync_credit_ledger(report: dict, entries: List[dict]) -> dict:
-    # CREDIT LEDGER: Date, Pump, Serial No, Customer Name, Vehicle/Note, Fuel Type, Litres, Amount Given, Status, Amount Received, BALANCE DUE
-    rows = []
-    for entry in entries:
-        balance = float(entry.get("amount", 0)) - float(entry.get("amount_received", 0))
-        rows.append([
-            entry.get("date", report.get("date", "")),
-            report.get("pump_name", ""),
-            str(report.get("id", ""))[:6],
-            entry.get("customer_name", ""),
-            entry.get("note", ""),
-            entry.get("fuel_type", ""),
-            entry.get("litres", 0),
-            entry.get("amount", 0),
-            "Pending" if balance > 0 else "Cleared",
-            entry.get("amount_received", 0),
-            balance
-        ])
-    if rows:
-        return append_to_sheet("CREDIT LEDGER", rows)
-    return {"status": "no_entries"}
+# sync_credit_ledger removed because ledger part is removed
 
 def sync_expenses(report: dict) -> dict:
     # EXPENSES: Date, Pump, Serial No, Description, Amount
@@ -215,10 +195,7 @@ async def sync_all_on_approval(report: dict, credit_entries: List[dict]) -> dict
     except Exception as e:
         errors.append(f"INVENTORY sync failed: {e}")
 
-    try:
-        results["credit_ledger"] = sync_credit_ledger(report, credit_entries)
-    except Exception as e:
-        errors.append(f"CREDIT LEDGER sync failed: {e}")
+    # credit_ledger sync removed because ledger part is removed
 
     try:
         results["expenses"] = sync_expenses(report)

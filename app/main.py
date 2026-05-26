@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.routers import auth, reports, inventory, credits, sync, users, ocr
+from app.routers import auth, reports, inventory, sync, users, ocr
 
 app = FastAPI(
     title="NSS Fuel Station API",
@@ -36,7 +36,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(inventory.router)
-app.include_router(credits.router)
 app.include_router(sync.router)
 app.include_router(users.router)
 app.include_router(ocr.router)
